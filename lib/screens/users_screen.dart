@@ -3,22 +3,23 @@ import 'package:flutter/material.dart';
 
 import 'package:vehicles_app/components/loader_component.dart';
 import 'package:vehicles_app/helpers/api_helper.dart';
-import 'package:vehicles_app/models/brand.dart';
+import 'package:vehicles_app/models/document_type.dart';
 import 'package:vehicles_app/models/response.dart';
 import 'package:vehicles_app/models/token.dart';
-import 'package:vehicles_app/screens/brand_screen.dart';
+import 'package:vehicles_app/models/user.dart';
+import 'package:vehicles_app/screens/user_screen.dart';
 
-class BrandsScreen extends StatefulWidget {
+class UsersScreen extends StatefulWidget {
   final Token token;
 
-  BrandsScreen({required this.token});
+  UsersScreen({required this.token});
 
   @override
-  _BrandsScreenState createState() => _BrandsScreenState();
+  _UsersScreenState createState() => _UsersScreenState();
 }
 
-class _BrandsScreenState extends State<BrandsScreen> {
-  List<Brand> _brands = [];
+class _UsersScreenState extends State<UsersScreen> {
+  List<User> _users = [];
   bool _showLoader = false;
   bool _isFiltered = false;
   String _search = '';
@@ -26,14 +27,14 @@ class _BrandsScreenState extends State<BrandsScreen> {
   @override
   void initState() {
     super.initState();
-    _getBrands();
+    _getUsers();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Marcas'),
+        title: Text('Usuarios'),
         actions: <Widget>[
           _isFiltered
           ? IconButton(
@@ -56,12 +57,12 @@ class _BrandsScreenState extends State<BrandsScreen> {
     );
   }
 
-  Future<Null> _getBrands() async {
+  Future<Null> _getUsers() async {
     setState(() {
       _showLoader = true;
     });
 
-    Response response = await ApiHelper.getBrands(widget.token.token);
+    Response response = await ApiHelper.getUsers(widget.token.token);
 
     setState(() {
       _showLoader = false;
@@ -80,12 +81,12 @@ class _BrandsScreenState extends State<BrandsScreen> {
     }
 
     setState(() {
-      _brands = response.result;
+      _users = response.result;
     });
   }
 
   Widget _getContent() {
-    return _brands.length == 0
+    return _users.length == 0
       ? _noContent()
       : _getListView();
   }
@@ -96,8 +97,8 @@ class _BrandsScreenState extends State<BrandsScreen> {
         margin: EdgeInsets.all(20),
         child: Text(
           _isFiltered
-          ? 'No hay marcas con ese criterio de busqueda.'
-          : 'No hay marcas registradas.',
+          ? 'No hay usuarios con ese criterio de busqueda.'
+          : 'No hay usuarios registradas.',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold
@@ -109,29 +110,63 @@ class _BrandsScreenState extends State<BrandsScreen> {
 
   Widget _getListView() {
     return RefreshIndicator(
-      onRefresh: _getBrands,
+      onRefresh: _getUsers,
       child: ListView(
-        children: _brands.map((e) {
+        children: _users.map((e) {
           return Card(
             child: InkWell(
               onTap: () => _goEdit(e),
               child: Container(
                 margin: EdgeInsets.all(10),
                 padding: EdgeInsets.all(5),
-                child: Column(
+                child: Row(
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          e.description, 
-                          style: TextStyle(
-                            fontSize: 20,
-                          ),
-                        ),
-                        Icon(Icons.arrow_forward_ios),
-                      ],
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(40),
+                      child: FadeInImage(
+                        placeholder: AssetImage('assets/vehicles_logo.png'), 
+                        image: NetworkImage(e.imageFullPath),
+                        width: 80,
+                        height: 80,
+                        fit: BoxFit.cover
+                      ),
                     ),
+                    Expanded(
+                      child: Container(
+                        margin: EdgeInsets.symmetric(horizontal: 10),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            Column(
+                              children: [
+                                Text(
+                                  e.fullName, 
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold
+                                  ),
+                                ),
+                                SizedBox(height: 5,),
+                                Text(
+                                  e.email, 
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                SizedBox(height: 5,),
+                                Text(
+                                  e.phoneNumber, 
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Icon(Icons.arrow_forward_ios),
                   ],
                 ),
               ),
@@ -150,11 +185,11 @@ class _BrandsScreenState extends State<BrandsScreen> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
           ),
-          title: Text('Filtrar Marcas'),
+          title: Text('Filtrar Usuarios'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              Text('Escriba las primeras letras de la marca'),
+              Text('Escriba las primeras letras del nombre o apellidos del usuario'),
               SizedBox(height: 10,),
               TextField(
                 autofocus: true,
@@ -187,7 +222,7 @@ class _BrandsScreenState extends State<BrandsScreen> {
     setState(() {
       _isFiltered = false;
     });
-    _getBrands();
+    _getUsers();
   }
 
   void _filter() {
@@ -195,15 +230,15 @@ class _BrandsScreenState extends State<BrandsScreen> {
       return;
     }
 
-    List<Brand> filteredList = [];
-    for (var brand in _brands) {
-      if (brand.description.toLowerCase().contains(_search.toLowerCase())) {
-        filteredList.add(brand);
+    List<User>filteredList = [];
+    for (var user in _users) {
+      if (user.fullName.toLowerCase().contains(_search.toLowerCase())) {
+        filteredList.add(user);
       }
     }
 
     setState(() {
-      _brands = filteredList;
+      _users = filteredList;
       _isFiltered = true;
     });
 
@@ -214,29 +249,45 @@ class _BrandsScreenState extends State<BrandsScreen> {
     String? result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => BrandScreen(
+        builder: (context) => UserScreen(
           token: widget.token,
-          brand: Brand(description: '', id: 0),
+          user: User(
+            firstName: '',
+            lastName: '',
+            documentType: DocumentType(id: 0, description: ''),
+            document: '',
+            address: '',
+            imageId: '',
+            imageFullPath: '',
+            userType: 1,
+            fullName: '',
+            vehicles: [],
+            vehiclesCount: 0,
+            id: '',
+            userName: '',
+            email: '',
+            phoneNumber: '' 
+          ),
         )
       )
     );
     if (result == 'yes') {
-      _getBrands();
+      _getUsers();
     }
   }
 
-  void _goEdit(Brand brand) async {
+  void _goEdit(User user) async {
     String? result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => BrandScreen(
+        builder: (context) => UserScreen(
           token: widget.token,
-          brand: brand,
+          user: user,
         )
       )
     );
     if (result == 'yes') {
-      _getBrands();
+      _getUsers();
     }
   }
 }
