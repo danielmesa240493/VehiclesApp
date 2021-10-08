@@ -1,9 +1,12 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:adaptive_dialog/adaptive_dialog.dart';
 import 'package:camera/camera.dart';
+import 'package:connectivity/connectivity.dart';
 import 'package:email_validator/email_validator.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'package:vehicles_app/components/loader_component.dart';
 import 'package:vehicles_app/helpers/api_helper.dart';
@@ -266,6 +269,28 @@ class _UserScreenState extends State<UserScreen> {
       _showLoader = true;
     });
 
+    var connectivityResult = await Connectivity().checkConnectivity();
+    if (connectivityResult == ConnectivityResult.none) {
+      setState(() {
+        _showLoader = false;
+      });
+      await showAlertDialog(
+        context: context,
+        title: 'Error', 
+        message: 'Verifica que estes conectado a internet.',
+        actions: <AlertDialogAction>[
+            AlertDialogAction(key: null, label: 'Aceptar'),
+        ]
+      );    
+      return;
+    }
+
+    String base64image = '';
+    if (_photoChanged) {
+      List<int> imageBytes = await _image.readAsBytes();
+      base64image = base64Encode(imageBytes);
+    }
+
     Map<String, dynamic> request = {
       'firstName': _firstName,
       'lastName': _lastName,
@@ -275,6 +300,7 @@ class _UserScreenState extends State<UserScreen> {
       'userName': _email,
       'address': _address,
       'phoneNumber': _phoneNumber,
+      'image': base64image,
     };
 
     Response response = await ApiHelper.post(
@@ -307,6 +333,28 @@ class _UserScreenState extends State<UserScreen> {
       _showLoader = true;
     });
 
+    var connectivityResult = await Connectivity().checkConnectivity();
+    if (connectivityResult == ConnectivityResult.none) {
+      setState(() {
+        _showLoader = false;
+      });
+      await showAlertDialog(
+        context: context,
+        title: 'Error', 
+        message: 'Verifica que estes conectado a internet.',
+        actions: <AlertDialogAction>[
+            AlertDialogAction(key: null, label: 'Aceptar'),
+        ]
+      );    
+      return;
+    }
+
+    String base64image = '';
+    if (_photoChanged) {
+      List<int> imageBytes = await _image.readAsBytes();
+      base64image = base64Encode(imageBytes);
+    }
+
     Map<String, dynamic> request = {
       'id': widget.user.id,
       'firstName': _firstName,
@@ -317,6 +365,7 @@ class _UserScreenState extends State<UserScreen> {
       'userName': _email,
       'address': _address,
       'phoneNumber': _phoneNumber,
+      'image': base64image,
     };
 
     Response response = await ApiHelper.put(
@@ -366,6 +415,22 @@ class _UserScreenState extends State<UserScreen> {
       _showLoader = true;
     });
 
+    var connectivityResult = await Connectivity().checkConnectivity();
+    if (connectivityResult == ConnectivityResult.none) {
+      setState(() {
+        _showLoader = false;
+      });
+      await showAlertDialog(
+        context: context,
+        title: 'Error', 
+        message: 'Verifica que estes conectado a internet.',
+        actions: <AlertDialogAction>[
+            AlertDialogAction(key: null, label: 'Aceptar'),
+        ]
+      );    
+      return;
+    }
+
     Response response = await ApiHelper.delete(
       '/api/Users/', 
       widget.user.id, 
@@ -392,40 +457,40 @@ class _UserScreenState extends State<UserScreen> {
   }
 
   Widget _showPhoto() {
-    return InkWell(
-      onTap: () => _takePicture(),
-      child: Stack(
-        children: <Widget>[
-          Container(
-          margin: EdgeInsets.only(top: 10),
-          child: widget.user.id.isEmpty && !_photoChanged
-            ? Image(
-                image: AssetImage('assets/noimage.png'),
-                height: 160,
-                width: 160,
-                fit: BoxFit.cover,
-              ) 
-            : ClipRRect(
-                borderRadius: BorderRadius.circular(80),
-                child: _photoChanged 
-                ? Image.file(
-                    File(_image.path),
-                    height: 160,
-                    width: 160,
-                    fit: BoxFit.cover,
-                  ) 
-                : FadeInImage(
-                    placeholder: AssetImage('assets/vehicles_logo.png'), 
-                    image: NetworkImage(widget.user.imageFullPath),
-                    width: 160,
-                    height: 160,
-                    fit: BoxFit.cover
-                  ),
-              ),
-          ),
-          Positioned(
-            bottom: 0,
-            left: 100,
+    return Stack(
+      children: <Widget>[
+        Container(
+        margin: EdgeInsets.only(top: 10),
+        child: widget.user.id.isEmpty && !_photoChanged
+          ? Image(
+              image: AssetImage('assets/noimage.png'),
+              height: 160,
+              width: 160,
+              fit: BoxFit.cover,
+            ) 
+          : ClipRRect(
+              borderRadius: BorderRadius.circular(80),
+              child: _photoChanged 
+              ? Image.file(
+                  File(_image.path),
+                  height: 160,
+                  width: 160,
+                  fit: BoxFit.cover,
+                ) 
+              : FadeInImage(
+                  placeholder: AssetImage('assets/vehicles_logo.png'), 
+                  image: NetworkImage(widget.user.imageFullPath),
+                  width: 160,
+                  height: 160,
+                  fit: BoxFit.cover
+                ),
+            ),
+        ),
+        Positioned(
+          bottom: 0,
+          left: 100,
+          child: InkWell(
+            onTap: () => _takePicture(),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(30),
               child: Container(
@@ -438,10 +503,30 @@ class _UserScreenState extends State<UserScreen> {
                   color: Colors.blue,
                 ),
               ),
-            )
+            ),
           )
-        ]
-      ),
+        ),
+        Positioned(
+          bottom: 0,
+          left: 0,
+          child: InkWell(
+            onTap: () => _selectPicture(),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(30),
+              child: Container(
+                color: Colors.green[50],
+                height: 60,
+                width:60,
+                child: Icon(
+                  Icons.image,
+                  size: 40,
+                  color: Colors.blue,
+                ),
+              ),
+            ),
+          )
+        ),
+      ]
     );
   }
 
@@ -516,6 +601,7 @@ class _UserScreenState extends State<UserScreen> {
     return Container(
       padding: EdgeInsets.all(10),
       child: TextField(
+        enabled: widget.user.id.isEmpty,
         controller: _emailController,
         keyboardType: TextInputType.emailAddress,
         decoration: InputDecoration(
@@ -583,6 +669,22 @@ class _UserScreenState extends State<UserScreen> {
       _showLoader = true;
     });
 
+    var connectivityResult = await Connectivity().checkConnectivity();
+    if (connectivityResult == ConnectivityResult.none) {
+      setState(() {
+        _showLoader = false;
+      });
+      await showAlertDialog(
+        context: context,
+        title: 'Error', 
+        message: 'Verifica que estes conectado a internet.',
+        actions: <AlertDialogAction>[
+            AlertDialogAction(key: null, label: 'Aceptar'),
+        ]
+      );    
+      return;
+    }
+
     Response response = await ApiHelper.getDocumentTypes(widget.token.token);
 
     setState(() {
@@ -638,6 +740,17 @@ class _UserScreenState extends State<UserScreen> {
       setState(() {
         _photoChanged = true;
         _image = response.result;
+      });
+    }
+  }
+
+  void _selectPicture() async {
+    final ImagePicker _picker = ImagePicker();
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      setState(() {
+        _photoChanged = true;
+        _image = image;
       });
     }
   }
