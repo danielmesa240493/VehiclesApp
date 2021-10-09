@@ -4,6 +4,7 @@ import 'package:connectivity/connectivity.dart';
 import 'package:flutter/material.dart';
 import 'package:email_validator/email_validator.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:vehicles_app/components/loader_component.dart';
 import 'package:vehicles_app/helpers/constans.dart';
@@ -50,7 +51,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ],
             ),
           ),
-          _showLoader ? LoaderComponent(text: 'Por favor espere...',) : Container(),
+          _showLoader ? LoaderComponent(text: 'Por favor espere...') : Container(),
         ],
       ),
     );
@@ -60,6 +61,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return Image(
       image: AssetImage('assets/vehicles_logo.png'),
       width: 300,
+      fit: BoxFit.fill,
     );
   }
 
@@ -76,14 +78,14 @@ class _LoginScreenState extends State<LoginScreen> {
           prefixIcon: Icon(Icons.alternate_email),
           suffixIcon: Icon(Icons.email),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10) 
+            borderRadius: BorderRadius.circular(10)
           ),
         ),
-        onChanged: (value){
+        onChanged: (value) {
           _email = value;
         },
       ),
-    );  
+    );
   }
 
   Widget _showPassword() {
@@ -102,13 +104,13 @@ class _LoginScreenState extends State<LoginScreen> {
               setState(() {
                 _passwordShow = !_passwordShow;
               });
-            },
+            }, 
           ),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10) 
+            borderRadius: BorderRadius.circular(10)
           ),
         ),
-        onChanged: (value){
+        onChanged: (value) {
           _password = value;
         },
       ),
@@ -119,10 +121,10 @@ class _LoginScreenState extends State<LoginScreen> {
     return CheckboxListTile(
       title: Text('Recordarme'),
       value: _rememberme,
-      onChanged: (value) { 
+      onChanged: (value) {  
         setState(() {
           _rememberme = value!;
-        }); 
+        });
       }, 
     );
   }
@@ -133,33 +135,9 @@ class _LoginScreenState extends State<LoginScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: <Widget>[
-          Expanded(
-            child: ElevatedButton( 
-              child: Text('Iniciar Sesión'),
-              style: ButtonStyle(
-                backgroundColor: MaterialStateProperty.resolveWith<Color>(
-                  (Set<MaterialState> states) {
-                    return Color(0xFF120E43);
-                  }
-                ),
-              ),
-              onPressed: () => _login(),
-            ),
-          ),
+          _showLoginButton(),
           SizedBox(width: 20,),
-          Expanded(
-            child: ElevatedButton( 
-              child: Text('Nuevo Usuario'),
-              style: ButtonStyle(
-                backgroundColor: MaterialStateProperty.resolveWith<Color>(
-                  (Set<MaterialState> states) {
-                    return Color(0xFFE03B8B);
-                  }
-                ),
-              ),
-              onPressed: () {},
-            ),
-          ),
+          _showRegisterButton(),
         ],
       ),
     );
@@ -171,7 +149,7 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     if(!_validateFields()) {
-      return; 
+      return;
     }
 
     setState(() {
@@ -222,6 +200,11 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     var body = response.body;
+
+    if (_rememberme) {
+      _storeUser(body);
+    }
+
     var decodedJson = jsonDecode(body);
     var token = Token.fromJson(decodedJson);
     Navigator.pushReplacement(
@@ -243,7 +226,7 @@ class _LoginScreenState extends State<LoginScreen> {
       isValid = false;
       _emailShowError = true;
       _emailError = 'Debes ingresar un email válido.';
-    }else {
+    } else {
       _emailShowError = false;
     }
 
@@ -255,11 +238,49 @@ class _LoginScreenState extends State<LoginScreen> {
       isValid = false;
       _passwordShowError = true;
       _passwordError = 'Debes ingresar una contraseña de al menos 6 carácteres.';
-    }else {
+    } else {
       _passwordShowError = false;
     }
 
     setState(() { });
     return isValid;
+  }
+
+  Widget _showLoginButton() {
+    return Expanded(
+      child: ElevatedButton(
+        child: Text('Iniciar Sesión'),
+        style: ButtonStyle(
+          backgroundColor: MaterialStateProperty.resolveWith<Color>(
+            (Set<MaterialState> states) {
+              return Color(0xFF120E43);
+            }
+          ),
+        ),
+        onPressed: () => _login(), 
+      ),
+    );
+  }
+
+  Widget _showRegisterButton() {
+    return Expanded(
+      child: ElevatedButton(
+        child: Text('Nuevo Usuario'),
+        style: ButtonStyle(
+          backgroundColor: MaterialStateProperty.resolveWith<Color>(
+            (Set<MaterialState> states) {
+              return Color(0xFFE03B8B);
+            }
+          ),
+        ),
+        onPressed: () {}, 
+      ),
+    );
+  }
+
+  void _storeUser(String body) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isRemembered', true);
+    await prefs.setString('userBody', body);
   }
 }
